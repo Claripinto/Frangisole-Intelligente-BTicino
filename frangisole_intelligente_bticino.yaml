@@ -1,0 +1,644 @@
+blueprint:
+  name: Frangisole Intelligente BTicino
+  description: >
+    Controllo intelligente di un singolo frangisole basato sulla posizione del sole (azimut/elevazione),
+    con gestione privacy, modalità climatica, tilt virtuale (reset lamelle), override manuale e hook per sensori
+    (pioggia/vento/presenza/porta). Progettato per attuatori BTicino K4672M2S (supporta set position/open/close/stop).
+    Il blueprint è pensato per essere istanziato per ogni frangisole separatamente.
+  domain: automation
+  source_url: ''
+
+  input:
+    # --- Cover target (singola) ---
+    cover_entity:
+      name: Frangisole (entità)
+      description: Seleziona l'entità cover corrispondente al frangisole (singola).
+      selector:
+        entity:
+          domain: cover
+
+    # --- Geometria finestra / calcolo sole ---
+    azimut:
+      name: Azimut della finestra
+      description: Direzione della finestra (0=N, 90=E, 180=S, 270=W)
+      default: 180
+      selector:
+        number:
+          min: 0
+          max: 359
+          step: 1
+
+    fov:
+      name: Campo visivo (FOV)
+      description: Ampiezza totale in gradi. Esempio: 90
+      default: 90
+      selector:
+        number:
+          min: 0
+          max: 180
+          step: 1
+
+    fov_left:
+      name: FOV sinistro (se diverso)
+      description: Gradi a sinistra (se diverso dal destro). Tipico: 90
+      default: 90
+      selector:
+        number:
+          min: 0
+          max: 180
+          step: 1
+
+    fov_right:
+      name: FOV destro (se diverso)
+      description: Gradi a destra (se diverso dal sinistro). Tipico: 90
+      default: 90
+      selector:
+        number:
+          min: 0
+          max: 180
+          step: 1
+
+    distance:
+      name: Distanza dal vetro alla zona da ombreggiare (m)
+      description: Distanza frangisole → zona calcolo ombra (m)
+      default: 0.5
+      selector:
+        number:
+          min: 0.1
+          max: 5
+          step: 0.1
+
+    max_height:
+      name: Altezza massima frangisole (m)
+      description: Altezza del vano finestra / frangisole (m)
+      default: 2.1
+      selector:
+        number:
+          min: 0.1
+          max: 5
+          step: 0.1
+
+    default_position:
+      name: Posizione predefinita (%)
+      description: Posizione (%) quando il sole non è nel campo visivo
+      default: 60
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+
+    min_position:
+      name: Posizione minima consentita (%)
+      description: Limite inferiore assoluto (evita 0 se non desiderato)
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+
+    min_elevation:
+      name: Elevazione minima considerata (°)
+      description: Elevazione minima del sole per entrare in calcolo
+      default: 0
+      selector:
+        number:
+          min: -90
+          max: 90
+          step: 1
+
+    max_elevation:
+      name: Elevazione massima considerata (°)
+      description: Elevazione massima del sole per entrare in calcolo
+      default: 90
+      selector:
+        number:
+          min: -90
+          max: 90
+          step: 1
+
+    change_threshold:
+      name: Soglia minima di cambiamento (%)
+      description: Differenza minima rispetto alla posizione corrente per generare movimento
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+
+    cooldown_minutes:
+      name: Cooldown tra movimenti (minuti)
+      description: Tempo minimo tra due interventi automatici
+      default: 2
+      selector:
+        number:
+          min: 0
+          max: 120
+          step: 1
+
+    # --- PRIVACY MODE ---
+    privacy_mode:
+      name: Modalità Privacy
+      description: Quando applicare la posizione minima per privacy
+      default: always
+      selector:
+        select:
+          options:
+            - label: Sempre (forza apertura minima)
+              value: always
+            - label: Solo se cover_height < soglia
+              value: below_threshold
+            - label: Solo se sole è nel FOV
+              value: sun_in_fov
+
+    privacy_min_position:
+      name: Apertura minima privacy (%)
+      description: Valore di apertura minimo (es. 1%)
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 10
+          step: 1
+
+    privacy_threshold:
+      name: Soglia privacy (%)
+      description: Soglia percentuale per modalità 'below_threshold'
+      default: 20
+      selector:
+        number:
+          min: 1
+          max: 50
+          step: 1
+
+    # --- TILT-UP (reset lamelle per luce mattutina) ---
+    tilt_up_enabled:
+      name: Abilita Tilt-UP (reset lamelle per luce)
+      description: Sequence chiudi→(delay)→apri a posizione tilt-up
+      default: true
+      selector:
+        boolean: {}
+
+    tilt_up_position:
+      name: Posizione tilt-up (%) (1–5)
+      description: Posizione a cui risalire dopo reset (default 1%)
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 5
+          step: 1
+
+    tilt_up_apply_when_below:
+      name: Applica tilt-up solo se target < (%)
+      description: Se impostato >0, esegue tilt-up solo se il target calcolato è minore di questo valore. 0 = sempre possibile
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+
+    tilt_up_reset_delay:
+      name: Ritardo reset chiusura→riapertura (secondi)
+      description: Ritardo tra la chiusura completa e la risalita a tilt-up (configurabile)
+      default: 1
+      selector:
+        number:
+          min: 0.2
+          max: 5
+          step: 0.1
+
+    # --- TILT-DOWN (offset per ombreggiatura alta) ---
+    tilt_down_enabled:
+      name: Abilita Tilt-DOWN (offset per ombreggiatura)
+      description: Dopo aver raggiunto la posizione calcolata, scende di X% per far inclinare le lamelle
+      default: true
+      selector:
+        boolean: {}
+
+    tilt_down_offset:
+      name: Offset tilt-down (%)
+      description: Percentuali da sottrarre alla posizione calcolata per ottenere ombreggiatura in alto (1-3%)
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 5
+          step: 1
+
+    # --- Modalità Climatica (opzionale) ---
+    climate_enabled:
+      name: Abilita Modalità Climatica
+      description: Attiva regole aggiuntive (pioggia/vento/temperatura/presenza)
+      default: false
+      selector:
+        boolean: {}
+
+    rain_sensor:
+      name: Sensore pioggia (opzionale)
+      description: binary_sensor pioggia (lascia vuoto se non usi)
+      selector:
+        entity:
+          domain: binary_sensor
+
+    rain_action:
+      name: Azione su pioggia
+      description: Comportamento se il sensore segnala pioggia
+      default: chiudi_tutto
+      selector:
+        select:
+          options:
+            - label: Chiudi tutto
+              value: chiudi_tutto
+            - label: Solo privacy (porta a privacy_min_position)
+              value: solo_privacy
+            - label: Ignora pioggia
+              value: ignora
+
+    wind_sensor:
+      name: Sensore vento (opzionale)
+      description: sensore vento (numeric). Se supera soglia può impedire aperture
+      selector:
+        entity:
+          domain: sensor
+
+    wind_threshold:
+      name: Soglia vento (unità sensore)
+      description: Valore oltre il quale si blocca apertura (lascia a 0 per ignorare)
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+
+    temp_sensor_inside:
+      name: Sensore temperatura interna (opzionale)
+      description: Temperatura interna per logiche climatica
+      selector:
+        entity:
+          domain: sensor
+
+    temp_hot_threshold:
+      name: Temperatura soglia caldo (°C)
+      description: Se temperatura interna > soglia e climate_enabled attivo → comportamento antifare caldo
+      default: 27
+      selector:
+        number:
+          min: -10
+          max: 50
+          step: 0.5
+
+    temp_cold_threshold:
+      name: Temperatura soglia freddo (°C)
+      description: Se temperatura interna < soglia e climate_enabled attivo → apri per guadagno solare
+      default: 18
+      selector:
+        number:
+          min: -10
+          max: 50
+          step: 0.5
+
+    presence_sensor:
+      name: Sensore presenza (opzionale)
+      description: binary_sensor per presenza/motion
+      selector:
+        entity:
+          domain: binary_sensor
+
+    presence_timeout:
+      name: Timeout presenza (minuti)
+      description: Tempo dopo l'ultimo evento di presenza per considerare "assenza"
+      default: 30
+      selector:
+        number:
+          min: 0
+          max: 1440
+          step: 1
+
+    door_sensor:
+      name: Sensore porta/apertura (opzionale)
+      description: binary_sensor apertura porta -> può alterare comportamento
+      selector:
+        entity:
+          domain: binary_sensor
+
+    door_behavior:
+      name: Comportamento porta aperta
+      description: Se la porta è aperta, comportamento dell'automazione
+      default: keep
+      selector:
+        select:
+          options:
+            - label: Mantieni posizioni (non intervenire)
+              value: keep
+            - label: Chiudi tutto
+              value: chiudi_tutto
+            - label: Applica privacy
+              value: solo_privacy
+
+    # --- Override manuale (opzionale) ---
+    manual_override_entity:
+      name: Override manuale (input_boolean opzionale)
+      description: Se ON disabilita automaticamente l'intervento per il periodo override_time
+      selector:
+        entity:
+          domain: input_boolean
+
+    override_time:
+      name: Durata override manuale (minuti)
+      description: Durata mantenimento override (se attivato manualmente)
+      default: 30
+      selector:
+        number:
+          min: 1
+          max: 1440
+          step: 1
+
+    # --- Debug / Logging ---
+    debug:
+      name: Abilita log di debug
+      description: Abilita log temporanei come notify (utile per tuning iniziale)
+      default: false
+      selector:
+        boolean: {}
+
+variables:
+  cover: !input cover_entity
+  azimuth: !input azimut
+  deg: !input fov
+  left_deg: !input fov_left
+  right_deg: !input fov_right
+  distance: !input distance
+  h_max: !input max_height
+  default_h: !input default_position
+  min_pos: !input min_position
+  elev_min: !input min_elevation
+  elev_max: !input max_elevation
+  change_th: !input change_threshold
+  cooldown: !input cooldown_minutes
+
+  # privacy
+  privacy_mode: !input privacy_mode
+  privacy_min: !input privacy_min_position
+  privacy_thr: !input privacy_threshold
+
+  # tilt-up
+  tilt_up_enabled: !input tilt_up_enabled
+  tilt_up_pos: !input tilt_up_position
+  tilt_up_apply_when_below: !input tilt_up_apply_when_below
+  tilt_up_delay: !input tilt_up_reset_delay
+
+  # tilt-down
+  tilt_down_enabled: !input tilt_down_enabled
+  tilt_down_offset: !input tilt_down_offset
+
+  # climate
+  climate_enabled: !input climate_enabled
+  rain_sensor: !input rain_sensor
+  rain_action: !input rain_action
+  wind_sensor: !input wind_sensor
+  wind_threshold: !input wind_threshold
+  temp_sensor_inside: !input temp_sensor_inside
+  temp_hot: !input temp_hot_threshold
+  temp_cold: !input temp_cold_threshold
+  presence_sensor: !input presence_sensor
+  presence_timeout: !input presence_timeout
+  door_sensor: !input door_sensor
+  door_behavior: !input door_behavior
+  manual_override: !input manual_override_entity
+  override_time: !input override_time
+
+  debug_on: !input debug
+
+  # sun attrs
+  sun_az: "{{ state_attr('sun.sun','azimuth') | float(0) }}"
+  sun_el: "{{ state_attr('sun.sun','elevation') | float(0) }}"
+
+  # conversions
+  deg2rad: "{{ pi / 180 }}"
+
+  # gamma = difference azimuth normalized [-180,180] in radians
+  gamma: >
+    {{ deg2rad * (((azimuth | float) - sun_az + 180) % 360 - 180) }}
+
+  alpha: "{{ deg2rad * sun_el }}"
+
+  azi_left: "{{ deg2rad * - (left_deg | float) }}"
+  azi_right: "{{ deg2rad * (right_deg | float) }}"
+  elev_low: "{{ deg2rad * (elev_min | float) }}"
+  elev_high: "{{ deg2rad * (elev_max | float) }}"
+
+  sun_in_fov: >
+    {{ (azi_left <= gamma <= azi_right) and (elev_low <= alpha <= elev_high) }}
+
+  # calculated_position: percent [0..100]
+  calculated_position: >
+    {%- set def = default_h | float -%}
+    {%- if not sun_in_fov -%}
+      {{ def }}
+    {%- else -%}
+      {%- set h = (distance | float) / cos(gamma) * tan(alpha) -%}
+      {{ ((h / (h_max | float)) * 100) | round(0) | int }}
+    {%- endif -%}
+
+  # climate adjustments (simplified)
+  is_raining: >
+    {% if climate_enabled and (states(rain_sensor) not in ['unknown','unavailable','none','']) %}
+      {{ states(rain_sensor) in ['on','true','1'] }}
+    {% else %}
+      false
+    {% endif %}
+
+  wind_over: >
+    {% if climate_enabled and wind_sensor %}
+      {{ (states(wind_sensor) | float(0)) >= (wind_threshold | float(0)) }}
+    {% else %}
+      false
+    {% endif %}
+
+  inside_temp: >
+    {% if climate_enabled and temp_sensor_inside and (states(temp_sensor_inside) not in ['unknown','unavailable','none','']) %}
+      {{ states(temp_sensor_inside) | float }}
+    {% else %}
+      none
+    {% endif %}
+
+  presence_now: >
+    {% if presence_sensor and (states(presence_sensor) not in ['unknown','unavailable','none','']) %}
+      {{ states(presence_sensor) in ['on','true','1'] }}
+    {% else %}
+      false
+    {% endif %}
+
+  door_open_now: >
+    {% if door_sensor and (states(door_sensor) not in ['unknown','unavailable','none','']) %}
+      {{ states(door_sensor) in ['on','true','1'] }}
+    {% else %}
+      false
+    {% endif %}
+
+  # privacy enforcement
+  privacy_enforced: >
+    {% if privacy_mode == 'always' %}
+      true
+    {% elif privacy_mode == 'below_threshold' %}
+      {{ (calculated_position | float(0)) < (privacy_thr | float(0)) }}
+    {% elif privacy_mode == 'sun_in_fov' %}
+      {{ sun_in_fov }}
+    {% else %}
+      false
+    {% endif %}
+
+  # apply privacy to base calculated position
+  position_with_privacy: >
+    {% set calc = (calculated_position | float(0)) %}
+    {% if privacy_enforced %}
+      {{ [calc, (privacy_min | float(0)), (min_pos | float(0))] | max }}
+    {% else %}
+      {{ [calc, (min_pos | float(0))] | max }}
+    {% endif %}
+
+  # apply climate overrides (pioggia/wind/door/temp/presence)
+  final_position_pretilt: >
+    {% set pos = (position_with_privacy | float(0)) %}
+    {% if climate_enabled and is_raining %}
+      {% if rain_action == 'chiudi_tutto' %}
+        {{ 0 }}
+      {% elif rain_action == 'solo_privacy' %}
+        {{ [privacy_min | float(0), min_pos | float(0)] | max }}
+      {% else %}
+        {{ pos }}
+      {% endif %}
+    {% elif climate_enabled and wind_over %}
+      {{ pos }}
+    {% elif climate_enabled and inside_temp is not none and (inside_temp | float) > (temp_hot | float) and (presence_now == false) %}
+      {# If hot and no presence -> favor shading (lower position) #}
+      {{ [pos, privacy_min | float(0)] | min }}
+    {% elif climate_enabled and inside_temp is not none and (inside_temp | float) < (temp_cold | float) %}
+      {# If cold -> prefer opening (allow pos) #}
+      {{ pos }}
+    {% else %}
+      {{ pos }}
+    {% endif %}
+
+  # compute tilt-down target (apply offset if enabled)
+  final_position: >
+    {% set pre = final_position_pretilt | float(0) %}
+    {% if tilt_down_enabled %}
+      {{ [ (pre - (tilt_down_offset | float(0))), min_pos | float(0) ] | max }}
+    {% else %}
+      {{ pre }}
+    {% endif %}
+
+  # current position of the cover
+  current_pos: "{{ state_attr(cover, 'current_position') | int(0) }}"
+
+trigger:
+  - platform: state
+    entity_id: sun.sun
+  - platform: state
+    entity_id: !input rain_sensor
+    for: "00:00:05"
+  - platform: state
+    entity_id: !input presence_sensor
+    for: "00:00:05"
+  - platform: state
+    entity_id: !input door_sensor
+    for: "00:00:05"
+  - platform: state
+    entity_id: !input wind_sensor
+    for: "00:00:05"
+  - platform: state
+    entity_id: !input temp_sensor_inside
+    for: "00:05:00"
+  - platform: state
+    entity_id: !input cover_entity
+
+condition:
+  - condition: template
+    value_template: >
+      {# check manual override input boolean if provided #}
+      {% if manual_override and (states(manual_override) not in ['unknown','unavailable','none','']) %}
+        {{ states(manual_override) not in ['on','true','1'] }}
+      {% else %}
+        true
+      {% endif %}
+
+  - condition: template
+    value_template: >
+      {# cooldown check: last_updated timestamp #}
+      {% set last = states(cover).last_updated %}
+      {% if last is not none %}
+        {{ (as_timestamp(now()) - as_timestamp(last)) > (cooldown * 60) }}
+      {% else %}
+        true
+      {% endif %}
+
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ debug_on }}"
+        sequence:
+          - service: system_log.write
+            data:
+              message: >
+                Blueprint debug: cover={{ cover }} sun_in_fov={{ sun_in_fov }} calc={{ calculated_position }} privacy={{ privacy_enforced }} pretilt={{ final_position_pretilt }} final={{ final_position }} current={{ current_pos }}
+              level: info
+
+  # If difference smaller than threshold -> do nothing
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ ( (final_position | float(0)) | int ) == (current_pos | int) or ( ( (final_position | float(0)) - (current_pos | float(0)) ) | abs ) < (change_th | float(0)) }}
+        sequence:
+          - service: system_log.write
+            data:
+              message: "Frangisole: cambiamento sotto soglia — nessuna azione eseguita"
+              level: info
+      - default:
+          - choose:
+
+              # --- TILT-UP CASE: need reset close->up to tilt lamelle to tilt_up_pos
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {{ tilt_up_enabled and ( final_position | float(0) ) <= ( tilt_up_apply_when_below | float(0) if ( tilt_up_apply_when_below | int ) > 0 else 100 ) and ( current_pos | float(0) ) > ( final_position | float(0) ) and ( final_position | float(0) ) <= ( tilt_up_pos | float(0) ) }}
+                sequence:
+                  - service: cover.close_cover
+                    data:
+                      entity_id: "{{ cover }}"
+                  - delay:
+                      seconds: "{{ tilt_up_delay }}"
+                  - service: cover.set_cover_position
+                    data:
+                      entity_id: "{{ cover }}"
+                      position: "{{ tilt_up_pos | int }}"
+                  - delay:
+                      seconds: 0.3
+                  - service: system_log.write
+                    data:
+                      message: "Frangisole: eseguito TILT-UP (reset lamelle) per {{ cover }} -> position {{ tilt_up_pos }}"
+                      level: info
+
+              # --- NORMAL CASE: set to final_position
+              - conditions: []
+                sequence:
+                  - service: cover.set_cover_position
+                    data:
+                      entity_id: "{{ cover }}"
+                      position: "{{ final_position | int }}"
+                  - delay:
+                      seconds: 0.3
+                  - service: system_log.write
+                    data:
+                      message: "Frangisole: posizionamento eseguito per {{ cover }} -> position {{ final_position }}"
+                      level: info
+
+  # End actions: done
+mode: single
