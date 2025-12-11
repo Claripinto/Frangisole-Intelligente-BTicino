@@ -9,6 +9,7 @@ blueprint:
     Migliorato da Orazio.
 
   domain: automation
+  source_url: ""
 
 ###########################################
 #   B L O C C O   1 :   INPUT  U I        #
