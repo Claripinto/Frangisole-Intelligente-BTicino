@@ -12,81 +12,57 @@ blueprint:
   domain: automation
   source_url: "https://github.com/oraziopata/frangisole_intelligente_bticino"
 
-###########################################
-#   B L O C C O   1 :   I N P U T S       #
-###########################################
-
 input:
 
   cover_entity:
     name: Frangisole da controllare
     description: >
       Seleziona uno o più frangisole BTicino compatibili.
-      Puoi inserirne più di uno per gestire intere facciate.
     selector:
       target:
         entity:
           domain: cover
 
-  #########################################################
-  #    GEOMETRIA FINESTRA / CALCOLO SOLE
-  #########################################################
-
   azimut:
-    name: Azimut Finestra
+    name: Azimut della finestra (gradi)
     description: >
-      Orientamento della finestra/frangisole.
-      0° = Nord, 90° = Est, 180° = Sud, 270° = Ovest.
+      0° Nord • 90° Est • 180° Sud • 270° Ovest.
     default: 180
     selector:
       number:
         min: 0
         max: 359
         step: 1
-        mode: slider
 
   distance:
-    name: Distanza finestra → zona ombra (metri)
-    description: >
-      Distanza orizzontale fra il frangisole e il punto del pavimento
-      dove vuoi calcolare l'ombra.
+    name: Distanza frangisole → pavimento (m)
     default: 0.5
     selector:
       number:
         min: 0.1
         max: 3.0
         step: 0.1
-        unit_of_measurement: m
 
   max_height:
-    name: Altezza massima frangisole (metri)
-    description: >
-      Altezza totale del frangisole quando è completamente abbassato.
+    name: Altezza totale frangisole (m)
     default: 2.1
     selector:
       number:
         min: 0.5
         max: 4.0
         step: 0.1
-        unit_of_measurement: m
 
   default_position:
-    name: Posizione predefinita fuori dal FOV (%)
-    description: >
-      Posizione del frangisole quando il sole non è nel campo visivo.
+    name: Posizione default fuori FOV (%)
     default: 60
     selector:
       number:
         min: 0
         max: 100
         step: 1
-        unit_of_measurement: "%"
 
   min_position:
-    name: Posizione minima consentita (%)
-    description: >
-      Il frangisole non andrà mai sotto questa posizione,
-      qualunque sia il calcolo solare o la privacy.
+    name: Posizione minima fisica (%)
     default: 1
     selector:
       number:
@@ -95,10 +71,7 @@ input:
         step: 1
 
   fov:
-    name: FOV Totale (gradi)
-    description: >
-      Ampiezza totale del campo visivo della finestra.
-      Esempio: 90 significa 45° a sinistra e 45° a destra.
+    name: Campo visivo totale (gradi)
     default: 90
     selector:
       number:
@@ -107,10 +80,7 @@ input:
         step: 1
 
   fov_left:
-    name: FOV sinistra (gradi)
-    description: >
-      Ampiezza campo visivo lato sinistra.
-      Usalo se la finestra ha ostruzioni asimmetriche.
+    name: FOV sinistra
     default: 45
     selector:
       number:
@@ -119,9 +89,7 @@ input:
         step: 1
 
   fov_right:
-    name: FOV destra (gradi)
-    description: >
-      Ampiezza campo visivo lato destra.
+    name: FOV destra
     default: 45
     selector:
       number:
@@ -131,8 +99,6 @@ input:
 
   min_elevation:
     name: Elevazione minima sole (°)
-    description: >
-      Al di sotto di questa elevazione il sole non viene considerato.
     default: 0
     selector:
       number:
@@ -142,8 +108,6 @@ input:
 
   max_elevation:
     name: Elevazione massima sole (°)
-    description: >
-      Al di sopra di questa elevazione il frangisole non reagirà.
     default: 45
     selector:
       number:
@@ -152,10 +116,7 @@ input:
         step: 1
 
   change_threshold:
-    name: Soglia di variazione (%)
-    description: >
-      Il frangisole si muoverà solo se la differenza tra posizione attuale
-      e target supera questa percentuale (protezione motori).
+    name: Soglia movimento minimo (%)
     default: 1
     selector:
       number:
@@ -165,8 +126,6 @@ input:
 
   cooldown_minutes:
     name: Tempo minimo tra movimenti (min)
-    description: >
-      Protezione motori: attesa minima tra un movimento e quello successivo.
     default: 1
     selector:
       number:
@@ -174,17 +133,8 @@ input:
         max: 30
         step: 1
 
-  #########################################################
-  #               PRIVACY
-  #########################################################
-
   privacy_mode:
-    name: Modalità Privacy
-    description: >
-      • always: sempre garantita  
-      • sun_in_fov: solo quando il sole è nella finestra  
-      • below_threshold: solo se il calcolo solare è basso  
-      • off: nessuna privacy
+    name: Modalità privacy
     default: "below_threshold"
     selector:
       select:
@@ -196,8 +146,6 @@ input:
 
   privacy_min_position:
     name: Posizione minima per privacy (%)
-    description: >
-      La posizione minima garantita quando la privacy si attiva.
     default: 1
     selector:
       number:
@@ -207,9 +155,6 @@ input:
 
   privacy_threshold:
     name: Soglia privacy (%)
-    description: >
-      Se privacy_mode = below_threshold,
-      la privacy scatta solo quando il calcolo posizione < questa soglia.
     default: 20
     selector:
       number:
@@ -217,21 +162,14 @@ input:
         max: 100
         step: 1
 
-  #########################################################
-  #           TILT-UP (chiudi → apri 1–5%)
-  #########################################################
-
   tilt_up_enabled:
-    name: Abilita Tilt-Up automatico
+    name: Abilita Tilt-Up
     default: true
     selector:
       boolean: {}
 
   tilt_up_position:
-    name: Posizione dopo Tilt-Up (%)  
-    description: >
-      La posizione finale dopo chiusura+riapertura.
-      Tipicamente 1–5% per inclinare le lamelle.
+    name: Posizione dopo Tilt-Up (%)
     default: 1
     selector:
       number:
@@ -240,9 +178,7 @@ input:
         step: 1
 
   tilt_up_apply_when_below:
-    name: Applica Tilt-Up se target sotto (%)
-    description: >
-      Il tilt-up scatta solo se il target è sotto a questa percentuale.
+    name: Applica Tilt-Up se target sotto a (%)
     default: 20
     selector:
       number:
@@ -251,19 +187,13 @@ input:
         step: 1
 
   tilt_up_reset_delay:
-    name: Ritardo prima di applicare il Tilt-Up (sec)
-    description: >
-      Tempo in secondi tra il movimento principale e il tilt-up.
+    name: Secondi prima del Tilt-Up
     default: 3
     selector:
       number:
         min: 0
         max: 15
         step: 1
-
-  #########################################################
-  #           TILT-DOWN (oscura leggermente)
-  #########################################################
 
   tilt_down_enabled:
     name: Abilita Tilt-Down
@@ -273,8 +203,6 @@ input:
 
   tilt_down_offset:
     name: Offset Tilt-Down (%)
-    description: >
-      Il target viene abbassato di X% per far chiudere leggermente le lamelle.
     default: 2
     selector:
       number:
@@ -282,20 +210,14 @@ input:
         max: 20
         step: 1
 
-  #########################################################
-  #            CLIMATICA (pioggia/vento/porta)
-  #########################################################
-
   climate_enabled:
-    name: Abilita funzioni climatiche
+    name: Abilita logica climatica
     default: false
     selector:
       boolean: {}
 
   rain_sensor:
     name: Sensore pioggia
-    description: >
-      Attiva comportamento speciale in caso di pioggia.
     default: null
     selector:
       entity:
@@ -312,7 +234,7 @@ input:
           - "ignore"
 
   wind_sensor:
-    name: Sensore vento (velocità)
+    name: Sensore vento
     default: null
     selector:
       entity:
@@ -328,7 +250,7 @@ input:
         step: 1
 
   door_sensor:
-    name: Sensore porta (aperta/chiusa)
+    name: Sensore porta
     default: null
     selector:
       entity:
@@ -343,10 +265,6 @@ input:
           - "ignore"
           - "open_full"
           - "close_full"
-
-  #########################################################
-  #            TEMPERATURA / PRESENZA / OVERRIDE
-  #########################################################
 
   temp_sensor_inside:
     name: Sensore temperatura interna
@@ -381,7 +299,7 @@ input:
         domain: binary_sensor
 
   presence_timeout:
-    name: Timeout presenza (minuti)
+    name: Timeout presenza (min)
     default: 30
     selector:
       number:
@@ -391,19 +309,13 @@ input:
 
   manual_override_entity:
     name: Interruttore override manuale
-    description: >
-      Se acceso, blocca completamente il controllo automatico
-      e il frangisole resta alla posizione manualmente impostata.
     default: null
     selector:
       entity:
         domain: input_boolean
 
   override_time:
-    name: Durata override automatico (minuti)
-    description: >
-      Se l'automazione imposta l'override,
-      quanto tempo deve restare attivo?
+    name: Durata override (min)
     default: 15
     selector:
       number:
@@ -411,69 +323,75 @@ input:
         max: 180
         step: 1
 
-  #########################################################
-  #                  DEBUG
-  #########################################################
-
   debug:
-    name: Debug (log avanzato)
+    name: Debug log
     default: false
     selector:
       boolean: {}
-
 ###########################################
-#   B L O C C O   2 :   V A R I A B I L I  #
+#   B L O C C O   2 :   V A R I A B I L I #
 ###########################################
 
 variables:
 
   cover: !input cover_entity
+
   azimut: !input azimut
-  fov: !input fov
-  fov_left: !input fov_left
-  fov_right: !input fov_right
   distance: !input distance
   max_height: !input max_height
   default_position: !input default_position
   min_position: !input min_position
+
+  fov: !input fov
+  fov_left: !input fov_left
+  fov_right: !input fov_right
   min_elevation: !input min_elevation
   max_elevation: !input max_elevation
+
   change_threshold: !input change_threshold
   cooldown_minutes: !input cooldown_minutes
 
+  # PRIVACY
   privacy_mode: !input privacy_mode
   privacy_min_position: !input privacy_min_position
   privacy_threshold: !input privacy_threshold
 
+  # TILT UP
   tilt_up_enabled: !input tilt_up_enabled
   tilt_up_position: !input tilt_up_position
   tilt_up_apply_when_below: !input tilt_up_apply_when_below
   tilt_up_reset_delay: !input tilt_up_reset_delay
 
+  # TILT DOWN
   tilt_down_enabled: !input tilt_down_enabled
   tilt_down_offset: !input tilt_down_offset
 
+  # CLIMATICO
   climate_enabled: !input climate_enabled
   rain_sensor: !input rain_sensor
   rain_action: !input rain_action
   wind_sensor: !input wind_sensor
   wind_threshold: !input wind_threshold
+  door_sensor: !input door_sensor
+  door_behavior: !input door_behavior
+
+  # TEMPERATURA / PRESENZA
   temp_sensor_inside: !input temp_sensor_inside
   temp_hot_threshold: !input temp_hot_threshold
   temp_cold_threshold: !input temp_cold_threshold
   presence_sensor: !input presence_sensor
   presence_timeout: !input presence_timeout
-  door_sensor: !input door_sensor
-  door_behavior: !input door_behavior
 
+  # OVERRIDE
   manual_override: !input manual_override_entity
   override_time: !input override_time
 
   debug: !input debug
 
-  #######################################
-  #   CALCOLO POSIZIONE SOLE            #
-  #######################################
+  ###########################################
+  #   SOLE — ATTRIBUTI
+  ###########################################
+
   sun_azimuth: "{{ state_attr('sun.sun', 'azimuth') }}"
   sun_elevation: "{{ state_attr('sun.sun', 'elevation') }}"
 
@@ -485,59 +403,65 @@ variables:
   fov_right_rad: "{{ (fov_right * pi / 180) }}"
   elev_min_rad: "{{ (min_elevation * pi / 180) }}"
   elev_max_rad: "{{ (max_elevation * pi / 180) }}"
-  sun_elev_rad: "{{ sun_elevation * pi / 180 }}"
+  sun_elev_rad: "{{ (sun_elevation * pi / 180) }}"
 
-  #######################################
-  #   SOLE DENTRO FOV? (TRUE/FALSE)     #
-  #######################################
+  ###########################################
+  #   SOLE DENTRO FOV?
+  ###########################################
   sun_in_fov: >
     {{ gamma_rad >= -fov_left_rad and gamma_rad <= fov_right_rad
        and sun_elev_rad >= elev_min_rad
        and sun_elev_rad <= elev_max_rad }}
 
-  #######################################
-  #    CALCOLO OMBRA SU PAVIMENTO       #
-  #######################################
+  ###########################################
+  #   CALCOLO ALTEZZA OMBRA
+  ###########################################
   sun_height_m: >
     {% if (sun_elev_rad | float) <= 0 %}
       9999
     {% else %}
-      {{ distance / (tan(sun_elev_rad)) }}
+      {{ distance / tan(sun_elev_rad) }}
     {% endif %}
 
   position_calc_raw: >
     {% set perc = (sun_height_m / max_height) * 100 %}
-    {% if perc < 0 %} 0
-    {% elif perc > 100 %} 100
-    {% else %} {{ perc }}
+    {% if perc < 0 %}
+      0
+    {% elif perc > 100 %}
+      100
+    {% else %}
+      {{ perc }}
     {% endif %}
 
-  #######################################
-  #      PRIVACY COMPUTATION            #
-  #######################################
+  ###########################################
+  #   PRIVACY
+  ###########################################
   position_after_privacy: >
     {% set p = position_calc_raw | float %}
     {% if privacy_mode == "always" %}
       {{ max(p, privacy_min_position) }}
+
     {% elif privacy_mode == "sun_in_fov" %}
       {% if sun_in_fov %}
         {{ max(p, privacy_min_position) }}
       {% else %}
         {{ p }}
       {% endif %}
+
     {% elif privacy_mode == "below_threshold" %}
       {% if p < privacy_threshold %}
         {{ max(p, privacy_min_position) }}
       {% else %}
         {{ p }}
       {% endif %}
+
     {% else %}
       {{ p }}
     {% endif %}
 
-  #######################################
-  #          TILT-DOWN OFFSET           #
-  #######################################
+  ###########################################
+  #   TILT-DOWN
+  ###########################################
   position_after_tilt_down: >
     {% set p = position_after_privacy | float %}
     {% if tilt_down_enabled %}
@@ -546,9 +470,9 @@ variables:
       {{ p }}
     {% endif %}
 
-  #######################################
-  #     POSIZIONE FINALE PRELIMINARE    #
-  #######################################
+  ###########################################
+  #   TARGET PRELIMINARE
+  ###########################################
   position_target_pre: >
     {% if sun_in_fov %}
       {{ position_after_tilt_down }}
@@ -556,9 +480,9 @@ variables:
       {{ default_position }}
     {% endif %}
 
-  #######################################
-  #   APPLICO POSIZIONE MINIMA ASSOLUTA #
-  #######################################
+  ###########################################
+  #   TARGET FINALE (con minimo assoluto)
+  ###########################################
   position_target: >
     {% set p = position_target_pre | float %}
     {% if p < min_position %}
@@ -566,25 +490,28 @@ variables:
     {% else %}
       {{ p }}
     {% endif %}
-
 ###########################################
-#   B L O C C O   3 :  T R I G G E R      #
+#   B L O C C O   3 :   T R I G G E R     #
 ###########################################
 
 trigger:
+
+  # Aggiornamento continuo del sole
   - platform: state
     entity_id: sun.sun
 
+  # Backup: ogni minuto
   - platform: time_pattern
-    minutes: "/1"   # backup ogni minuto
+    minutes: "/1"
+
 
 ###########################################
-#   B L O C C O   4 :  C O N D I T I O N #
+#   B L O C C O   4 :  C O N D I Z I O N I #
 ###########################################
 
 condition:
 
-  # Se override manuale è attivo → STOP
+  # 1️⃣ Override manuale attivo → blocco totale
   - condition: template
     value_template: >
       {% if manual_override %}
@@ -593,11 +520,14 @@ condition:
         true
       {% endif %}
 
-  # Cooldown (evita stress motori)
+  # 2️⃣ Cooldown (evita stress ai motori)
   - condition: template
     value_template: >
       {% set last = states[cover.entity_id].last_changed %}
       {{ (now() - last).total_seconds() / 60 >= cooldown_minutes }}
+
+
+
 ###########################################
 #   B L O C C O   5 :   A Z I O N I       #
 ###########################################
@@ -605,7 +535,7 @@ condition:
 action:
 
   ##################################
-  # 1) DEBUG : STAMPA VALORI       #
+  # 1) DEBUG AVANZATO
   ##################################
   - choose:
       - conditions:
@@ -615,26 +545,27 @@ action:
           - service: system_log.write
             data:
               message: >
-                [FRANGISOLE DEBUG]  
-                Sole in FOV: {{ sun_in_fov }}  
-                Elevazione: {{ sun_elevation }}  
-                Azimut: {{ sun_azimuth }}  
-                Calcolo ombra: {{ position_calc_raw }}%  
-                Privacy → {{ position_after_privacy }}%  
-                Tilt-down → {{ position_after_tilt_down }}%  
-                Target finale → {{ position_target }}%
+                [FRANGISOLE DEBUG]
+
+                ➤ Sole in FOV: {{ sun_in_fov }}
+                ➤ Azimut: {{ sun_azimuth }}
+                ➤ Elevazione: {{ sun_elevation }}
+
+                ➤ Calcolo Ombra: {{ position_calc_raw }} %
+                ➤ Privacy: {{ position_after_privacy }} %
+                ➤ Tilt-Down: {{ position_after_tilt_down }} %
+                ➤ Target finale: {{ position_target }} %
+
               level: info
 
 
   ##################################
-  # 2) LOGICA CLIMATICA BASE       #
+  # 2) LOGICA CLIMATICA BASE
   ##################################
 
   - choose:
 
-      ##########################################################
-      # ☔ PIOGGIA — solo se abilitato
-      ##########################################################
+      # ☔ LOGICA PIOGGIA
       - conditions:
           - condition: template
             value_template: "{{ climate_enabled and rain_sensor != none }}"
@@ -659,15 +590,13 @@ action:
                 sequence:
                   - service: system_log.write
                     data:
-                      message: "[FRANGISOLE] Rain mode attivato"
+                      message: "[FRANGISOLE] Modalità pioggia attiva"
                       level: info
 
           - stop
 
 
-      ##########################################################
-      # 💨 VENTO — se supera la soglia (protezione frangisole)
-      ##########################################################
+      # 💨 LOGICA VENTO
       - conditions:
           - condition: template
             value_template: "{{ climate_enabled and wind_sensor != none }}"
@@ -675,10 +604,11 @@ action:
             value_template: >
               {{ states(wind_sensor)|float(0) >= wind_threshold }}
         sequence:
+
           - service: cover.set_cover_position
             target: !input cover_entity
             data:
-              position: 100   # tutto aperto = sicuro
+              position: 100   # massimo aperto = più sicuro
 
           - choose:
               - conditions:
@@ -687,15 +617,13 @@ action:
                 sequence:
                   - service: system_log.write
                     data:
-                      message: "[FRANGISOLE] Wind mode attivato"
+                      message: "[FRANGISOLE] Modalità vento attiva"
                       level: warning
 
           - stop
 
 
-      ##########################################################
-      # 🚪 PORTA APERTA (se configurato)
-      ##########################################################
+      # 🚪 LOGICA PORTA APERTA
       - conditions:
           - condition: template
             value_template: "{{ climate_enabled and door_sensor != none }}"
@@ -720,14 +648,14 @@ action:
                 sequence:
                   - service: system_log.write
                     data:
-                      message: "[FRANGISOLE] Door mode attivato"
+                      message: "[FRANGISOLE] Porta aperta → logica attivata"
                       level: info
 
           - stop
 
 
   ##################################
-  # 3) MOVIMENTO PRINCIPALE        #
+  # 3) MOVIMENTO PRINCIPALE
   ##################################
 
   - service: cover.set_cover_position
@@ -737,7 +665,7 @@ action:
 
 
   ##################################
-  # 4) TILT-UP DOPO MOVIMENTO      #
+  # 4) TILT-UP INTELLIGENTE
   ##################################
 
   - choose:
@@ -757,7 +685,7 @@ action:
           - service: cover.set_cover_position
             target: !input cover_entity
             data:
-              position: "{{ tilt_up_position }}"   # → 1–5% (INCLINAZIONE LAMELLE)
+              position: "{{ tilt_up_position }}"
 
           - choose:
               - conditions:
@@ -766,12 +694,12 @@ action:
                 sequence:
                   - service: system_log.write
                     data:
-                      message: >
-                        [FRANGISOLE] Tilt-UP applicato dopo movimento
+                      message: "[FRANGISOLE] Tilt-UP applicato"
                       level: info
 
+
 ###########################################
-#   F I N E   B L U E P R I N T           #
+#   FINE BLUEPRINT
 ###########################################
 
 mode: restart
