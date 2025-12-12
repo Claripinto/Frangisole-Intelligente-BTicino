@@ -329,9 +329,8 @@ input:
 ###########################################
 
 variables:
-
+  
   cover: !input cover_entity
-
   azimut: !input azimut
   distance: !input distance
   max_height: !input max_height
