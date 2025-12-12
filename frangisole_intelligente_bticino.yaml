@@ -10,7 +10,6 @@ blueprint:
   source_url: "https://github.com/oraziopata/frangisole_intelligente_bticino"
 
 input:
-
   cover_entity:
     name: Frangisole da controllare
     description: >
