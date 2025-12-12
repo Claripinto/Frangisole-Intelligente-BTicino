@@ -1,0 +1,14 @@
+blueprint:
+  name: Frangisole Intelligente BTicino
+  description: >
+    Automazione avanzata per la gestione intelligente dei frangisole BTicino.
+  domain: automation
+  source_url: "https://github.com/oraziopata/frangisole_intelligente_bticino"
+
+input:
+  cover_entity:
+    name: Frangisole da controllare
+    selector:
+      target:
+        entity:
+          domain: cover
