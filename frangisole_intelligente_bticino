@@ -1,25 +1,24 @@
 blueprint:
   name: Frangisole Intelligente BTicino
   description: >
-    Automazione avanzata per la gestione intelligente dei frangisole BTicino,
-    con calcolo solare avanzato, tilt-up/down, privacy dinamica, logica climatica,
-    override manuale e sicurezza.
+    Automazione avanzata per la gestione intelligente dei frangisole BTicino.
   domain: automation
   source_url: "https://github.com/oraziopata/frangisole_intelligente_bticino"
 
+################################################
+#         I N P U T   C O M P L E T I         #
+################################################
 input:
 
   cover_entity:
     name: Frangisole da controllare
-    description: Seleziona uno o più frangisole BTicino compatibili.
     selector:
       target:
         entity:
           domain: cover
 
   azimut:
-    name: Azimut della finestra (gradi)
-    description: 0° Nord • 90° Est • 180° Sud • 270° Ovest.
+    name: Azimut finestra (°)
     default: 180
     selector:
       number:
@@ -28,25 +27,25 @@ input:
         step: 1
 
   distance:
-    name: Distanza frangisole → pavimento (m)
+    name: Distanza pavimento → frangisole (m)
     default: 0.5
     selector:
       number:
         min: 0.1
-        max: 3.0
+        max: 3
         step: 0.1
 
   max_height:
-    name: Altezza totale frangisole (m)
+    name: Altezza frangisole (m)
     default: 2.1
     selector:
       number:
         min: 0.5
-        max: 4.0
+        max: 4
         step: 0.1
 
   default_position:
-    name: Posizione di default quando il sole non è in FOV (%)
+    name: Posizione default fuori FOV
     default: 60
     selector:
       number:
@@ -55,7 +54,7 @@ input:
         step: 1
 
   min_position:
-    name: Posizione minima fisica consentita (%)
+    name: Posizione minima fisica
     default: 1
     selector:
       number:
@@ -64,8 +63,7 @@ input:
         step: 1
 
   fov:
-    name: Campo visivo totale (°)
-    description: Ampiezza complessiva del FOV.
+    name: FOV totale (°)
     default: 90
     selector:
       number:
@@ -74,7 +72,7 @@ input:
         step: 1
 
   fov_left:
-    name: Campo visivo a sinistra (°)
+    name: FOV sinistra (°)
     default: 45
     selector:
       number:
@@ -83,7 +81,7 @@ input:
         step: 1
 
   fov_right:
-    name: Campo visivo a destra (°)
+    name: FOV destra (°)
     default: 45
     selector:
       number:
@@ -92,7 +90,7 @@ input:
         step: 1
 
   min_elevation:
-    name: Elevazione minima del sole (°)
+    name: Elevazione minima sole
     default: 0
     selector:
       number:
@@ -101,7 +99,7 @@ input:
         step: 1
 
   max_elevation:
-    name: Elevazione massima del sole (°)
+    name: Elevazione massima sole
     default: 45
     selector:
       number:
@@ -110,8 +108,7 @@ input:
         step: 1
 
   change_threshold:
-    name: Soglia di movimento minima (%)
-    description: Evita micro-movimenti inutili del motore.
+    name: Soglia cambio minimo (%)
     default: 1
     selector:
       number:
@@ -120,7 +117,7 @@ input:
         step: 1
 
   cooldown_minutes:
-    name: Tempo minimo tra movimenti (minuti)
+    name: Tempo minimo tra movimenti
     default: 1
     selector:
       number:
@@ -140,7 +137,7 @@ input:
           - "off"
 
   privacy_min_position:
-    name: Posizione minima per la privacy (%)
+    name: Posizione minima privacy
     default: 1
     selector:
       number:
@@ -164,7 +161,7 @@ input:
       boolean: {}
 
   tilt_up_position:
-    name: Posizione dopo il Tilt-Up (%)
+    name: Posizione Tilt-Up (%)
     default: 1
     selector:
       number:
@@ -173,7 +170,7 @@ input:
         step: 1
 
   tilt_up_apply_when_below:
-    name: Applica Tilt-Up se target sotto questa soglia (%)
+    name: Tilt-Up se sotto (%)
     default: 20
     selector:
       number:
@@ -182,7 +179,7 @@ input:
         step: 1
 
   tilt_up_reset_delay:
-    name: Ritardo (secondi) prima del Tilt-Up
+    name: Ritardo Tilt-Up (sec)
     default: 3
     selector:
       number:
@@ -206,7 +203,7 @@ input:
         step: 1
 
   climate_enabled:
-    name: Abilita logica climatica
+    name: Abilita clima
     default: false
     selector:
       boolean: {}
@@ -219,7 +216,7 @@ input:
         domain: binary_sensor
 
   rain_action:
-    name: Azione in caso di pioggia
+    name: Azione pioggia
     default: "close"
     selector:
       select:
@@ -236,7 +233,7 @@ input:
         domain: sensor
 
   wind_threshold:
-    name: Soglia vento (km/h)
+    name: Soglia vento
     default: 30
     selector:
       number:
@@ -245,14 +242,14 @@ input:
         step: 1
 
   door_sensor:
-    name: Sensore porta finestra
+    name: Sensore porta
     default: null
     selector:
       entity:
         domain: binary_sensor
 
   door_behavior:
-    name: Comportamento porta aperta
+    name: Comportamento porta
     default: "ignore"
     selector:
       select:
@@ -269,7 +266,7 @@ input:
         domain: sensor
 
   temp_hot_threshold:
-    name: Soglia caldo interno (°C)
+    name: Soglia caldo
     default: 27
     selector:
       number:
@@ -278,7 +275,7 @@ input:
         step: 0.5
 
   temp_cold_threshold:
-    name: Soglia freddo interno (°C)
+    name: Soglia freddo
     default: 18
     selector:
       number:
@@ -287,7 +284,7 @@ input:
         step: 0.5
 
   presence_sensor:
-    name: Sensore di presenza
+    name: Sensore presenza
     default: null
     selector:
       entity:
@@ -303,14 +300,14 @@ input:
         step: 1
 
   manual_override_entity:
-    name: Interruttore override manuale
+    name: Override manuale
     default: null
     selector:
       entity:
         domain: input_boolean
 
   override_time:
-    name: Durata override (min)
+    name: Durata override
     default: 15
     selector:
       number:
@@ -323,3 +320,27 @@ input:
     default: false
     selector:
       boolean: {}
+
+################################################
+#                 V A R I A B L I              #
+################################################
+variables:
+  default_position: !input default_position
+
+################################################
+#             T R I G G E R   M I N I M O      #
+################################################
+trigger:
+  - platform: homeassistant
+    event: start
+
+################################################
+#              A Z I O N E   M I N I M A       #
+################################################
+action:
+  - service: system_log.write
+    data:
+      message: "Blueprint caricato correttamente."
+      level: info
+
+mode: single
