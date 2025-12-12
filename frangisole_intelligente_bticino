@@ -1,46 +1,70 @@
 blueprint:
-  name: Frangisole Intelligente BTicino
-  description: Blueprint base valido per test struttura
+  name: Frangisole BTicino – STEP 1 (Base operativa)
+  description: >
+    Blueprint base per il controllo di un frangisole BTicino.
+    Muove il frangisole in base alla posizione del sole.
+    STEP 1 – struttura valida e funzionante.
+
   domain: automation
   source_url: https://github.com/oraziopata/frangisole_intelligente_bticino
 
-  input:
-    cover_entity:
-      name: Frangisole da controllare
-      selector:
-        target:
-          entity:
-            domain: cover
+input:
 
-    default_position:
-      name: Posizione default
-      default: 60
-      selector:
-        number:
-          min: 0
-          max: 100
-          step: 1
+  cover_entity:
+    name: Frangisole
+    description: Seleziona il frangisole BTicino
+    selector:
+      target:
+        entity:
+          domain: cover
 
-################################################
-# VARIABILI
-################################################
+  azimut:
+    name: Azimut finestra (gradi)
+    description: 0=N, 90=E, 180=S, 270=O
+    default: 180
+    selector:
+      number:
+        min: 0
+        max: 359
+        step: 1
+
+  default_position:
+    name: Posizione default (%)
+    description: Posizione quando il sole non è davanti
+    default: 60
+    selector:
+      number:
+        min: 0
+        max: 100
+        step: 1
+
+mode: restart
+
+###########################################
+#   TRIGGER
+###########################################
+
+trigger:
+  - platform: state
+    entity_id: sun.sun
+
+###########################################
+#   VARIABILI
+###########################################
+
 variables:
+  cover: !input cover_entity
+  azimut: !input azimut
   default_position: !input default_position
 
-################################################
-# TRIGGER MINIMO
-################################################
-trigger:
-  - platform: homeassistant
-    event: start
+  sun_azimuth: "{{ state_attr('sun.sun', 'azimuth') }}"
 
-################################################
-# AZIONE MINIMA
-################################################
+###########################################
+#   AZIONE
+###########################################
+
 action:
-  - service: system_log.write
+  - service: cover.set_cover_position
+    target: !input cover_entity
     data:
-      message: "Blueprint Frangisole caricato correttamente"
-      level: info
-
-mode: single
+      position: "{{ default_position }}"
