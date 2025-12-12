@@ -7,7 +7,7 @@ blueprint:
     controllo climatico opzionale, gestione porta aperta, override manuale
     e funzioni di sicurezza.
   domain: automation
-  source_url: "https://github.com/oraziopata/frangisole_intelligente_bticino"
+  source_url: "https://github.com/Claripinto/Frangisole-Intelligente-BTicino/refs/heads/main/frangisole_intelligente_bticino.yaml"
 
 input:
   cover_entity:
@@ -325,11 +325,11 @@ input:
     selector:
       boolean: {}
 ###########################################
-#   B L O C C O   2 :   V A R I A B I L I #
+#       B L O C C O   2 :   V A R I A B I L I #
 ###########################################
 
 variables:
-  
+
   cover: !input cover_entity
   azimut: !input azimut
   distance: !input distance
@@ -405,8 +405,8 @@ variables:
   ###########################################
   sun_in_fov: >
     {{ gamma_rad >= -fov_left_rad and gamma_rad <= fov_right_rad
-       and sun_elev_rad >= elev_min_rad
-       and sun_elev_rad <= elev_max_rad }}
+      and sun_elev_rad >= elev_min_rad
+      and sun_elev_rad <= elev_max_rad }}
 
   ###########################################
   #   CALCOLO ALTEZZA OMBRA
@@ -486,7 +486,7 @@ variables:
       {{ p }}
     {% endif %}
 ###########################################
-#   B L O C C O   3 :   T R I G G E R     #
+#   B L O C C O   3 :   T R I G G E R   
 ###########################################
 
 trigger:
@@ -501,7 +501,7 @@ trigger:
 
 
 ###########################################
-#   B L O C C O   4 :  C O N D I Z I O N I #
+#   B L O C C O   4 :   C O N D I Z I O N I #
 ###########################################
 
 condition:
@@ -524,7 +524,7 @@ condition:
 
 
 ###########################################
-#   B L O C C O   5 :   A Z I O N I       #
+#   B L O C C O   5 :   A Z I O N I     #
 ###########################################
 
 action:
@@ -603,7 +603,7 @@ action:
           - service: cover.set_cover_position
             target: !input cover_entity
             data:
-              position: 100   # massimo aperto = più sicuro
+              position: 100    # massimo aperto = più sicuro
 
           - choose:
               - conditions:
