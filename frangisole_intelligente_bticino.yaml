@@ -323,3 +323,166 @@ input:
     default: false
     selector:
       boolean: {}
+
+variables:
+
+  # ENTITÀ
+  cover: !input cover_entity
+
+  # PARAMETRI GEOMETRICI
+  azimut: !input azimut
+  distance: !input distance
+  max_height: !input max_height
+  default_position: !input default_position
+  min_position: !input min_position
+
+  # CAMPO VISIVO / SOLE
+  fov: !input fov
+  fov_left: !input fov_left
+  fov_right: !input fov_right
+  min_elevation: !input min_elevation
+  max_elevation: !input max_elevation
+
+  # SOGLIE E LIMITI
+  change_threshold: !input change_threshold
+  cooldown_minutes: !input cooldown_minutes
+
+  # PRIVACY
+  privacy_mode: !input privacy_mode
+  privacy_min_position: !input privacy_min_position
+  privacy_threshold: !input privacy_threshold
+
+  # TILT-UP
+  tilt_up_enabled: !input tilt_up_enabled
+  tilt_up_position: !input tilt_up_position
+  tilt_up_apply_when_below: !input tilt_up_apply_when_below
+  tilt_up_reset_delay: !input tilt_up_reset_delay
+
+  # TILT-DOWN
+  tilt_down_enabled: !input tilt_down_enabled
+  tilt_down_offset: !input tilt_down_offset
+
+  # LOGICA CLIMATICA
+  climate_enabled: !input climate_enabled
+  rain_sensor: !input rain_sensor
+  rain_action: !input rain_action
+  wind_sensor: !input wind_sensor
+  wind_threshold: !input wind_threshold
+  door_sensor: !input door_sensor
+  door_behavior: !input door_behavior
+
+  # TEMPERATURA / PRESENZA
+  temp_sensor_inside: !input temp_sensor_inside
+  temp_hot_threshold: !input temp_hot_threshold
+  temp_cold_threshold: !input temp_cold_threshold
+  presence_sensor: !input presence_sensor
+  presence_timeout: !input presence_timeout
+
+  # OVERRIDE MANUALE
+  manual_override: !input manual_override_entity
+  override_time: !input override_time
+
+  # DEBUG
+  debug: !input debug
+
+  ###########################################
+  #   ATTRIBUTI SOLE
+  ###########################################
+  sun_azimuth: "{{ state_attr('sun.sun', 'azimuth') }}"
+  sun_elevation: "{{ state_attr('sun.sun', 'elevation') }}"
+
+  gamma_rad: >
+    {% set a = (azimut - sun_azimuth + 180) % 360 - 180 %}
+    {{ a * pi / 180 }}
+
+  fov_left_rad: "{{ fov_left * pi / 180 }}"
+  fov_right_rad: "{{ fov_right * pi / 180 }}"
+  elev_min_rad: "{{ min_elevation * pi / 180 }}"
+  elev_max_rad: "{{ max_elevation * pi / 180 }}"
+  sun_elev_rad: "{{ sun_elevation * pi / 180 }}"
+
+  ###########################################
+  #   SOLE DENTRO IL FOV?
+  ###########################################
+  sun_in_fov: >
+    {{ gamma_rad >= -fov_left_rad and gamma_rad <= fov_right_rad
+       and sun_elev_rad >= elev_min_rad
+       and sun_elev_rad <= elev_max_rad }}
+
+  ###########################################
+  #   CALCOLO OMBRA / POSIZIONE IDEALE
+  ###########################################
+  sun_height_m: >
+    {% if (sun_elev_rad | float) <= 0 %}
+      9999
+    {% else %}
+      {{ distance / tan(sun_elev_rad) }}
+    {% endif %}
+
+  position_calc_raw: >
+    {% set perc = (sun_height_m / max_height) * 100 %}
+    {% if perc < 0 %}
+      0
+    {% elif perc > 100 %}
+      100
+    {% else %}
+      {{ perc }}
+    {% endif %}
+
+  ###########################################
+  #   PRIVACY DINAMICA
+  ###########################################
+  position_after_privacy: >
+    {% set p = position_calc_raw | float %}
+    {% if privacy_mode == "always" %}
+      {{ max(p, privacy_min_position) }}
+
+    {% elif privacy_mode == "sun_in_fov" %}
+      {% if sun_in_fov %}
+        {{ max(p, privacy_min_position) }}
+      {% else %}
+        {{ p }}
+      {% endif %}
+
+    {% elif privacy_mode == "below_threshold" %}
+      {% if p < privacy_threshold %}
+        {{ max(p, privacy_min_position) }}
+      {% else %}
+        {{ p }}
+      {% endif %}
+
+    {% else %}
+      {{ p }}
+    {% endif %}
+
+  ###########################################
+  #   TILT-DOWN (oscuramento leggero)
+  ###########################################
+  position_after_tilt_down: >
+    {% set p = position_after_privacy | float %}
+    {% if tilt_down_enabled %}
+      {{ max(0, p - tilt_down_offset) }}
+    {% else %}
+      {{ p }}
+    {% endif %}
+
+  ###########################################
+  #   TARGET PRE LIMITE
+  ###########################################
+  position_target_pre: >
+    {% if sun_in_fov %}
+      {{ position_after_tilt_down }}
+    {% else %}
+      {{ default_position }}
+    {% endif %}
+
+  ###########################################
+  #   TARGET FINALE (rispetto min_position)
+  ###########################################
+  position_target: >
+    {% set p = position_target_pre | float %}
+    {% if p < min_position %}
+      {{ min_position }}
+    {% else %}
+      {{ p }}
+    {% endif %}
