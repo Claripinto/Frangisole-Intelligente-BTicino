@@ -6,9 +6,6 @@ blueprint:
     tilt-up e tilt-down configurabili, compatibilità con sensori meteo,
     controllo climatico opzionale, gestione porta aperta, override manuale
     e funzioni di sicurezza.
-
-    Blueprint migliorato da Orazio.
-
   domain: automation
   source_url: "https://github.com/oraziopata/frangisole_intelligente_bticino"
 
