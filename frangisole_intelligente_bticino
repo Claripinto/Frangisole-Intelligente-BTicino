@@ -1,346 +1,46 @@
 blueprint:
   name: Frangisole Intelligente BTicino
-  description: >
-    Automazione avanzata per la gestione intelligente dei frangisole BTicino.
+  description: Blueprint base valido per test struttura
   domain: automation
-  source_url: "https://github.com/oraziopata/frangisole_intelligente_bticino"
+  source_url: https://github.com/oraziopata/frangisole_intelligente_bticino
+
+  input:
+    cover_entity:
+      name: Frangisole da controllare
+      selector:
+        target:
+          entity:
+            domain: cover
+
+    default_position:
+      name: Posizione default
+      default: 60
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
 
 ################################################
-#         I N P U T   C O M P L E T I         #
-################################################
-input:
-
-  cover_entity:
-    name: Frangisole da controllare
-    selector:
-      target:
-        entity:
-          domain: cover
-
-  azimut:
-    name: Azimut finestra (°)
-    default: 180
-    selector:
-      number:
-        min: 0
-        max: 359
-        step: 1
-
-  distance:
-    name: Distanza pavimento → frangisole (m)
-    default: 0.5
-    selector:
-      number:
-        min: 0.1
-        max: 3
-        step: 0.1
-
-  max_height:
-    name: Altezza frangisole (m)
-    default: 2.1
-    selector:
-      number:
-        min: 0.5
-        max: 4
-        step: 0.1
-
-  default_position:
-    name: Posizione default fuori FOV
-    default: 60
-    selector:
-      number:
-        min: 0
-        max: 100
-        step: 1
-
-  min_position:
-    name: Posizione minima fisica
-    default: 1
-    selector:
-      number:
-        min: 0
-        max: 100
-        step: 1
-
-  fov:
-    name: FOV totale (°)
-    default: 90
-    selector:
-      number:
-        min: 10
-        max: 120
-        step: 1
-
-  fov_left:
-    name: FOV sinistra (°)
-    default: 45
-    selector:
-      number:
-        min: 0
-        max: 120
-        step: 1
-
-  fov_right:
-    name: FOV destra (°)
-    default: 45
-    selector:
-      number:
-        min: 0
-        max: 120
-        step: 1
-
-  min_elevation:
-    name: Elevazione minima sole
-    default: 0
-    selector:
-      number:
-        min: 0
-        max: 45
-        step: 1
-
-  max_elevation:
-    name: Elevazione massima sole
-    default: 45
-    selector:
-      number:
-        min: 10
-        max: 90
-        step: 1
-
-  change_threshold:
-    name: Soglia cambio minimo (%)
-    default: 1
-    selector:
-      number:
-        min: 1
-        max: 20
-        step: 1
-
-  cooldown_minutes:
-    name: Tempo minimo tra movimenti
-    default: 1
-    selector:
-      number:
-        min: 0
-        max: 30
-        step: 1
-
-  privacy_mode:
-    name: Modalità privacy
-    default: "below_threshold"
-    selector:
-      select:
-        options:
-          - "always"
-          - "sun_in_fov"
-          - "below_threshold"
-          - "off"
-
-  privacy_min_position:
-    name: Posizione minima privacy
-    default: 1
-    selector:
-      number:
-        min: 0
-        max: 100
-        step: 1
-
-  privacy_threshold:
-    name: Soglia privacy (%)
-    default: 20
-    selector:
-      number:
-        min: 0
-        max: 100
-        step: 1
-
-  tilt_up_enabled:
-    name: Abilita Tilt-Up
-    default: true
-    selector:
-      boolean: {}
-
-  tilt_up_position:
-    name: Posizione Tilt-Up (%)
-    default: 1
-    selector:
-      number:
-        min: 0
-        max: 10
-        step: 1
-
-  tilt_up_apply_when_below:
-    name: Tilt-Up se sotto (%)
-    default: 20
-    selector:
-      number:
-        min: 0
-        max: 100
-        step: 1
-
-  tilt_up_reset_delay:
-    name: Ritardo Tilt-Up (sec)
-    default: 3
-    selector:
-      number:
-        min: 0
-        max: 15
-        step: 1
-
-  tilt_down_enabled:
-    name: Abilita Tilt-Down
-    default: false
-    selector:
-      boolean: {}
-
-  tilt_down_offset:
-    name: Offset Tilt-Down (%)
-    default: 2
-    selector:
-      number:
-        min: 0
-        max: 20
-        step: 1
-
-  climate_enabled:
-    name: Abilita clima
-    default: false
-    selector:
-      boolean: {}
-
-  rain_sensor:
-    name: Sensore pioggia
-    default: null
-    selector:
-      entity:
-        domain: binary_sensor
-
-  rain_action:
-    name: Azione pioggia
-    default: "close"
-    selector:
-      select:
-        options:
-          - "close"
-          - "open"
-          - "ignore"
-
-  wind_sensor:
-    name: Sensore vento
-    default: null
-    selector:
-      entity:
-        domain: sensor
-
-  wind_threshold:
-    name: Soglia vento
-    default: 30
-    selector:
-      number:
-        min: 5
-        max: 200
-        step: 1
-
-  door_sensor:
-    name: Sensore porta
-    default: null
-    selector:
-      entity:
-        domain: binary_sensor
-
-  door_behavior:
-    name: Comportamento porta
-    default: "ignore"
-    selector:
-      select:
-        options:
-          - "ignore"
-          - "open_full"
-          - "close_full"
-
-  temp_sensor_inside:
-    name: Sensore temperatura interna
-    default: null
-    selector:
-      entity:
-        domain: sensor
-
-  temp_hot_threshold:
-    name: Soglia caldo
-    default: 27
-    selector:
-      number:
-        min: 10
-        max: 40
-        step: 0.5
-
-  temp_cold_threshold:
-    name: Soglia freddo
-    default: 18
-    selector:
-      number:
-        min: 5
-        max: 30
-        step: 0.5
-
-  presence_sensor:
-    name: Sensore presenza
-    default: null
-    selector:
-      entity:
-        domain: binary_sensor
-
-  presence_timeout:
-    name: Timeout presenza (min)
-    default: 30
-    selector:
-      number:
-        min: 0
-        max: 120
-        step: 1
-
-  manual_override_entity:
-    name: Override manuale
-    default: null
-    selector:
-      entity:
-        domain: input_boolean
-
-  override_time:
-    name: Durata override
-    default: 15
-    selector:
-      number:
-        min: 1
-        max: 180
-        step: 1
-
-  debug:
-    name: Debug log
-    default: false
-    selector:
-      boolean: {}
-
-################################################
-#                 V A R I A B L I              #
+# VARIABILI
 ################################################
 variables:
   default_position: !input default_position
 
 ################################################
-#             T R I G G E R   M I N I M O      #
+# TRIGGER MINIMO
 ################################################
 trigger:
   - platform: homeassistant
     event: start
 
 ################################################
-#              A Z I O N E   M I N I M A       #
+# AZIONE MINIMA
 ################################################
 action:
   - service: system_log.write
     data:
-      message: "Blueprint caricato correttamente."
+      message: "Blueprint Frangisole caricato correttamente"
       level: info
 
 mode: single
