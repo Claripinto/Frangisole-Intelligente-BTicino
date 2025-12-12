@@ -1,159 +1,92 @@
 blueprint:
   name: Frangisole Intelligente BTicino
   description: >
-    Controllo avanzato per frangisole BTicino (attuatore K4672M2S o compatibili),
-    con calcolo posizione in base al sole (azimut/elevazione), gestione privacy,
-    modalità climatica, tilt virtuale (reset lamelle), offset tilt-down,
-    logiche di sicurezza (vento/pioggia/porta), override manuale e debouncing.
-    Pensato per essere istanziato per ogni singolo frangisole.
-    Migliorato da Orazio.
+    Automazione avanzata per la gestione intelligente dei frangisole BTicino,
+    con calcolo solare (azimut, elevazione, FOV), privacy dinamica,
+    tilt-up e tilt-down configurabili, compatibilità con sensori meteo,
+    controllo climatico opzionale, gestione porta aperta, override manuale
+    e funzioni di sicurezza.
+
+    Blueprint migliorato da Orazio.
 
   domain: automation
-  source_url: https://example.com/frangisole_intelligente_bticino
+  source_url: "https://github.com/oraziopata/frangisole_intelligente_bticino"
 
 ###########################################
-#   B L O C C O   1 :   INPUT  U I        #
+#   B L O C C O   1 :   I N P U T S       #
 ###########################################
 
 input:
 
-  ###########################################
-  # 1. COPERTURA / FRANGISOLE TARGET        #
-  ###########################################
   cover_entity:
-    name: Frangisole (entità)
+    name: Frangisole da controllare
     description: >
-      Seleziona l'entità cover del frangisole controllato da questa istanza.
-      Il blueprint è pensato per essere usato uno per ogni frangisole.
+      Seleziona uno o più frangisole BTicino compatibili.
+      Puoi inserirne più di uno per gestire intere facciate.
     selector:
-      entity:
-        domain: cover
+      target:
+        entity:
+          domain: cover
 
-  ###########################################
-  # 2. GEOMETRIA FINESTRA E SOLE           #
-  ###########################################
+  #########################################################
+  #    GEOMETRIA FINESTRA / CALCOLO SOLE
+  #########################################################
+
   azimut:
-    name: Azimut finestra
+    name: Azimut Finestra
     description: >
-      Orientamento della finestra in gradi:
-      0 = Nord, 90 = Est, 180 = Sud, 270 = Ovest.
+      Orientamento della finestra/frangisole.
+      0° = Nord, 90° = Est, 180° = Sud, 270° = Ovest.
     default: 180
     selector:
       number:
         min: 0
         max: 359
         step: 1
-
-  fov:
-    name: Campo visivo totale
-    description: >
-      Ampiezza totale in gradi del campo visivo della finestra.
-      Un valore tipico è 90°.
-    default: 90
-    selector:
-      number:
-        min: 0
-        max: 180
-        step: 1
-
-  fov_left:
-    name: FOV sinistro
-    description: >
-      Ampiezza in gradi a sinistra dell'azimut della finestra.
-      Usalo se il FOV non è simmetrico. Tipicamente 90°.
-    default: 90
-    selector:
-      number:
-        min: 0
-        max: 180
-        step: 1
-
-  fov_right:
-    name: FOV destro
-    description: >
-      Ampiezza in gradi a destra dell'azimut della finestra.
-      Usalo se il FOV non è simmetrico. Tipicamente 90°.
-    default: 90
-    selector:
-      number:
-        min: 0
-        max: 180
-        step: 1
+        mode: slider
 
   distance:
-    name: Distanza vetro → zona d'ombra (m)
+    name: Distanza finestra → zona ombra (metri)
     description: >
-      Distanza in metri tra il frangisole e il punto da ombreggiare.
-      Serve per i calcoli trigonometrici della proiezione solare.
+      Distanza orizzontale fra il frangisole e il punto del pavimento
+      dove vuoi calcolare l'ombra.
     default: 0.5
     selector:
       number:
         min: 0.1
-        max: 5
+        max: 3.0
         step: 0.1
+        unit_of_measurement: m
 
   max_height:
-    name: Altezza massima frangisole (m)
+    name: Altezza massima frangisole (metri)
     description: >
-      Altezza del vano finestra / frangisole in metri.
+      Altezza totale del frangisole quando è completamente abbassato.
     default: 2.1
     selector:
       number:
         min: 0.5
-        max: 5
+        max: 4.0
         step: 0.1
+        unit_of_measurement: m
 
   default_position:
-    name: Posizione predefinita (%)
+    name: Posizione predefinita fuori dal FOV (%)
     description: >
-      Posizione percentuale da assumere quando il sole NON è nel campo visivo
-      e non sono attive condizioni speciali.
+      Posizione del frangisole quando il sole non è nel campo visivo.
     default: 60
     selector:
       number:
         min: 0
         max: 100
         step: 1
+        unit_of_measurement: "%"
 
   min_position:
     name: Posizione minima consentita (%)
     description: >
-      Limite inferiore assoluto. Impostalo se non vuoi che il frangisole
-      scenda completamente a 0%.
-    default: 0
-    selector:
-      number:
-        min: 0
-        max: 100
-        step: 1
-
-  min_elevation:
-    name: Elevazione minima sole (°)
-    description: >
-      Soglia inferiore di elevazione solare per considerare il sole valido.
-    default: 0
-    selector:
-      number:
-        min: -90
-        max: 90
-        step: 1
-
-  max_elevation:
-    name: Elevazione massima sole (°)
-    description: >
-      Soglia superiore di elevazione solare per considerare il sole valido.
-    default: 90
-    selector:
-      number:
-        min: -90
-        max: 90
-        step: 1
-
-  change_threshold:
-    name: Soglia minima variazione (%)
-    description: >
-      Movimento ignorato se la differenza dalla posizione attuale è minore
-      di questa soglia. Serve per non stressare i motori.
+      Il frangisole non andrà mai sotto questa posizione,
+      qualunque sia il calcolo solare o la privacy.
     default: 1
     selector:
       number:
@@ -161,42 +94,144 @@ input:
         max: 100
         step: 1
 
-  cooldown_minutes:
-    name: Cooldown tra movimenti (minuti)
+  fov:
+    name: FOV Totale (gradi)
     description: >
-      Tempo minimo tra due movimenti consecutivi del frangisole.
-    default: 2
+      Ampiezza totale del campo visivo della finestra.
+      Esempio: 90 significa 45° a sinistra e 45° a destra.
+    default: 90
+    selector:
+      number:
+        min: 10
+        max: 120
+        step: 1
+
+  fov_left:
+    name: FOV sinistra (gradi)
+    description: >
+      Ampiezza campo visivo lato sinistra.
+      Usalo se la finestra ha ostruzioni asimmetriche.
+    default: 45
     selector:
       number:
         min: 0
         max: 120
         step: 1
 
-  ###########################################
-  # 3. MODALITÀ PRIVACY                    #
-  ###########################################
+  fov_right:
+    name: FOV destra (gradi)
+    description: >
+      Ampiezza campo visivo lato destra.
+    default: 45
+    selector:
+      number:
+        min: 0
+        max: 120
+        step: 1
+
+  min_elevation:
+    name: Elevazione minima sole (°)
+    description: >
+      Al di sotto di questa elevazione il sole non viene considerato.
+    default: 0
+    selector:
+      number:
+        min: 0
+        max: 45
+        step: 1
+
+  max_elevation:
+    name: Elevazione massima sole (°)
+    description: >
+      Al di sopra di questa elevazione il frangisole non reagirà.
+    default: 45
+    selector:
+      number:
+        min: 10
+        max: 90
+        step: 1
+
+  change_threshold:
+    name: Soglia di variazione (%)
+    description: >
+      Il frangisole si muoverà solo se la differenza tra posizione attuale
+      e target supera questa percentuale (protezione motori).
+    default: 1
+    selector:
+      number:
+        min: 1
+        max: 20
+        step: 1
+
+  cooldown_minutes:
+    name: Tempo minimo tra movimenti (min)
+    description: >
+      Protezione motori: attesa minima tra un movimento e quello successivo.
+    default: 1
+    selector:
+      number:
+        min: 0
+        max: 30
+        step: 1
+
+  #########################################################
+  #               PRIVACY
+  #########################################################
+
   privacy_mode:
     name: Modalità Privacy
     description: >
-      Regole per applicare automaticamente una posizione minima di privacy.
-      - always: sempre
-      - below_threshold: quando la posizione calcolata è sotto una soglia
-      - sun_in_fov: solo quando il sole è nel campo visivo
-    default: always
+      • always: sempre garantita  
+      • sun_in_fov: solo quando il sole è nella finestra  
+      • below_threshold: solo se il calcolo solare è basso  
+      • off: nessuna privacy
+    default: "below_threshold"
     selector:
       select:
         options:
-          - label: Sempre
-            value: always
-          - label: Solo se posizione < soglia
-            value: below_threshold
-          - label: Solo se sole nel FOV
-            value: sun_in_fov
+          - "always"
+          - "sun_in_fov"
+          - "below_threshold"
+          - "off"
 
   privacy_min_position:
-    name: Posizione minima privacy (%)
+    name: Posizione minima per privacy (%)
     description: >
-      Posizione minima da garantire per la privacy (tipicamente 1%).
+      La posizione minima garantita quando la privacy si attiva.
+    default: 1
+    selector:
+      number:
+        min: 0
+        max: 100
+        step: 1
+
+  privacy_threshold:
+    name: Soglia privacy (%)
+    description: >
+      Se privacy_mode = below_threshold,
+      la privacy scatta solo quando il calcolo posizione < questa soglia.
+    default: 20
+    selector:
+      number:
+        min: 0
+        max: 100
+        step: 1
+
+  #########################################################
+  #           TILT-UP (chiudi → apri 1–5%)
+  #########################################################
+
+  tilt_up_enabled:
+    name: Abilita Tilt-Up automatico
+    default: true
+    selector:
+      boolean: {}
+
+  tilt_up_position:
+    name: Posizione dopo Tilt-Up (%)  
+    description: >
+      La posizione finale dopo chiusura+riapertura.
+      Tipicamente 1–5% per inclinare le lamelle.
     default: 1
     selector:
       number:
@@ -204,49 +239,11 @@ input:
         max: 10
         step: 1
 
-  privacy_threshold:
-    name: Soglia privacy (%)
-    description: >
-      Valida solo se privacy_mode == below_threshold.
-      Se la posizione calcolata è minore di questa, si applica privacy.
-    default: 20
-    selector:
-      number:
-        min: 1
-        max: 50
-        step: 1
-
-  ###########################################
-  # 4. TILT-UP (RESET LAMELLE)             #
-  ###########################################
-  tilt_up_enabled:
-    name: Abilita Tilt-UP
-    description: >
-      Se attivo, prima chiude completamente il frangisole e poi risale
-      per ottenere lamelle inclinate e luce naturale. Sequenza:
-      chiudi → attesa → apri a tilt_up_position.
-    default: true
-    selector:
-      boolean: {}
-
-  tilt_up_position:
-    name: Posizione Tilt-UP (%) (1–5)
-    description: >
-      Valore percentuale di apertura da raggiungere dopo il reset.
-      Tipicamente 1%.
-    default: 1
-    selector:
-      number:
-        min: 1
-        max: 5
-        step: 1
-
   tilt_up_apply_when_below:
-    name: Applica Tilt-UP solo se target < (%)
+    name: Applica Tilt-Up se target sotto (%)
     description: >
-      Se >0, tilt-up viene applicato solo quando la posizione calcolata
-      è inferiore a questa soglia. Imposta 0 per applicarlo sempre.
-    default: 0
+      Il tilt-up scatta solo se il target è sotto a questa percentuale.
+    default: 20
     selector:
       number:
         min: 0
@@ -254,199 +251,176 @@ input:
         step: 1
 
   tilt_up_reset_delay:
-    name: Ritardo reset Tilt-UP (secondi)
+    name: Ritardo prima di applicare il Tilt-Up (sec)
     description: >
-      Tempo tra la chiusura completa e la successiva apertura al tilt.
-      Regolabile in base ai motori BTicino.
-    default: 1
+      Tempo in secondi tra il movimento principale e il tilt-up.
+    default: 3
     selector:
       number:
-        min: 0.2
-        max: 5
-        step: 0.1
+        min: 0
+        max: 15
+        step: 1
 
-  ###########################################
-  # 5. TILT-DOWN (OMBREGGIATURA ALTA)      #
-  ###########################################
+  #########################################################
+  #           TILT-DOWN (oscura leggermente)
+  #########################################################
+
   tilt_down_enabled:
-    name: Abilita Tilt-DOWN
-    description: >
-      Se attivo, applica un offset verso il basso alla posizione calcolata,
-      utile per creare ombreggiatura alta.
-    default: true
+    name: Abilita Tilt-Down
+    default: false
     selector:
       boolean: {}
 
   tilt_down_offset:
-    name: Offset Tilt-DOWN (%)
+    name: Offset Tilt-Down (%)
     description: >
-      Percentuale da sottrarre alla posizione calcolata (es. 20 → 19).
-      Tipico: 1–2%.
-    default: 1
+      Il target viene abbassato di X% per far chiudere leggermente le lamelle.
+    default: 2
     selector:
       number:
-        min: 1
-        max: 5
+        min: 0
+        max: 20
         step: 1
 
-  ###########################################
-  # 6. MODALITÀ CLIMATICA (FACOLTATIVA)     #
-  ###########################################
+  #########################################################
+  #            CLIMATICA (pioggia/vento/porta)
+  #########################################################
+
   climate_enabled:
-    name: Abilita modalità climatica
-    description: >
-      Attiva logiche aggiuntive su temperatura interna, pioggia, vento,
-      presenza, porta aperta.
+    name: Abilita funzioni climatiche
     default: false
     selector:
       boolean: {}
 
   rain_sensor:
-    name: Sensore pioggia (opzionale)
+    name: Sensore pioggia
     description: >
-      Sensore tipo binary_sensor che indica presenza di pioggia.
+      Attiva comportamento speciale in caso di pioggia.
+    default: null
     selector:
       entity:
         domain: binary_sensor
 
   rain_action:
-    name: Azione pioggia
-    description: >
-      Comportamento quando il sensore pioggia è ON.
-    default: chiudi_tutto
+    name: Azione in caso di pioggia
+    default: "close"
     selector:
       select:
         options:
-          - label: Chiudi tutto
-            value: chiudi_tutto
-          - label: Solo privacy
-            value: solo_privacy
-          - label: Ignora pioggia
-            value: ignora
+          - "close"
+          - "open"
+          - "ignore"
 
   wind_sensor:
-    name: Sensore vento (opzionale)
-    description: >
-      Sensore vento (numeric). Se supera una soglia evita aperture.
+    name: Sensore vento (velocità)
+    default: null
     selector:
       entity:
         domain: sensor
 
   wind_threshold:
-    name: Soglia vento
-    description: >
-      Se il sensore vento supera questa soglia, l'apertura viene limitata.
-    default: 0
-    selector:
-      number:
-        min: 0
-        max: 100
-        step: 1
-
-  temp_sensor_inside:
-    name: Sensore temperatura interna (opzionale)
-    description: >
-      Sensore temperatura interna per logiche climatiche. 
-    selector:
-      entity:
-        domain: sensor
-
-  temp_hot_threshold:
-    name: Soglia caldo (°C)
-    description: >
-      Se temperatura interna > soglia e absence → maggiore ombreggiatura.
-    default: 27
-    selector:
-      number:
-        min: -10
-        max: 50
-        step: 0.5
-
-  temp_cold_threshold:
-    name: Soglia freddo (°C)
-    description: >
-      Se temperatura interna < soglia → più apertura per guadagno solare.
-    default: 18
-    selector:
-      number:
-        min: -10
-        max: 50
-        step: 0.5
-
-  presence_sensor:
-    name: Sensore presenza (opzionale)
-    description: >
-      Sensore di movimento o presenza. Usato per logiche climatiche.
-    selector:
-      entity:
-        domain: binary_sensor
-
-  presence_timeout:
-    name: Timeout assenza (minuti)
-    description: >
-      Tempo dopo l'ultimo evento di presenza per considerare assenza persona.
+    name: Soglia vento (km/h)
     default: 30
     selector:
       number:
-        min: 0
-        max: 1440
+        min: 5
+        max: 200
         step: 1
 
   door_sensor:
-    name: Sensore porta finestra (opzionale)
-    description: >
-      Se la porta è aperta può alterare la logica: chiudi, privacy, ignora.
+    name: Sensore porta (aperta/chiusa)
+    default: null
     selector:
       entity:
         domain: binary_sensor
 
   door_behavior:
     name: Comportamento porta aperta
-    description: >
-      Regole quando viene rilevata porta aperta (se configurata).
-    default: keep
+    default: "ignore"
     selector:
       select:
         options:
-          - label: Mantieni posizione attuale
-            value: keep
-          - label: Chiudi tutto
-            value: chiudi_tutto
-          - label: Solo privacy
-            value: solo_privacy
+          - "ignore"
+          - "open_full"
+          - "close_full"
 
-  ###########################################
-  # 7. OVERRIDE MANUALE                     #
-  ###########################################
+  #########################################################
+  #            TEMPERATURA / PRESENZA / OVERRIDE
+  #########################################################
+
+  temp_sensor_inside:
+    name: Sensore temperatura interna
+    default: null
+    selector:
+      entity:
+        domain: sensor
+
+  temp_hot_threshold:
+    name: Soglia caldo interno (°C)
+    default: 27
+    selector:
+      number:
+        min: 10
+        max: 40
+        step: 0.5
+
+  temp_cold_threshold:
+    name: Soglia freddo interno (°C)
+    default: 18
+    selector:
+      number:
+        min: 5
+        max: 30
+        step: 0.5
+
+  presence_sensor:
+    name: Sensore presenza
+    default: null
+    selector:
+      entity:
+        domain: binary_sensor
+
+  presence_timeout:
+    name: Timeout presenza (minuti)
+    default: 30
+    selector:
+      number:
+        min: 0
+        max: 120
+        step: 1
+
   manual_override_entity:
-    name: Override manuale (opzionale)
+    name: Interruttore override manuale
     description: >
-      Un input_boolean che, se ON, blocca tutti i movimenti automatici.
+      Se acceso, blocca completamente il controllo automatico
+      e il frangisole resta alla posizione manualmente impostata.
+    default: null
     selector:
       entity:
         domain: input_boolean
 
   override_time:
-    name: Durata override (minuti)
+    name: Durata override automatico (minuti)
     description: >
-      Se override manuale è attivo, sospende l'automazione per questo tempo.
-    default: 30
+      Se l'automazione imposta l'override,
+      quanto tempo deve restare attivo?
+    default: 15
     selector:
       number:
         min: 1
-        max: 1440
+        max: 180
         step: 1
 
-  ###########################################
-  # 8. DEBUG                                #
-  ###########################################
+  #########################################################
+  #                  DEBUG
+  #########################################################
+
   debug:
-    name: Debug log
-    description: >
-      Se abilitato, scrive log dettagliati per troubleshooting.
+    name: Debug (log avanzato)
     default: false
     selector:
       boolean: {}
+
 ###########################################
 #   B L O C C O   2 :   V A R I A B I L I  #
 ###########################################
