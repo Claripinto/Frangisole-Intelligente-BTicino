@@ -324,9 +324,6 @@ input:
     default: false
     selector:
       boolean: {}
-###########################################
-#       B L O C C O   2 :   V A R I A B I L I #
-###########################################
 
 variables:
 
@@ -336,13 +333,11 @@ variables:
   max_height: !input max_height
   default_position: !input default_position
   min_position: !input min_position
-
   fov: !input fov
   fov_left: !input fov_left
   fov_right: !input fov_right
   min_elevation: !input min_elevation
   max_elevation: !input max_elevation
-
   change_threshold: !input change_threshold
   cooldown_minutes: !input cooldown_minutes
 
@@ -383,10 +378,7 @@ variables:
 
   debug: !input debug
 
-  ###########################################
-  #   SOLE — ATTRIBUTI
-  ###########################################
-
+  # SOLE — ATTRIBUTI
   sun_azimuth: "{{ state_attr('sun.sun', 'azimuth') }}"
   sun_elevation: "{{ state_attr('sun.sun', 'elevation') }}"
 
@@ -400,17 +392,13 @@ variables:
   elev_max_rad: "{{ (max_elevation * pi / 180) }}"
   sun_elev_rad: "{{ (sun_elevation * pi / 180) }}"
 
-  ###########################################
-  #   SOLE DENTRO FOV?
-  ###########################################
+  # SOLE DENTRO FOV?
   sun_in_fov: >
     {{ gamma_rad >= -fov_left_rad and gamma_rad <= fov_right_rad
       and sun_elev_rad >= elev_min_rad
       and sun_elev_rad <= elev_max_rad }}
 
-  ###########################################
-  #   CALCOLO ALTEZZA OMBRA
-  ###########################################
+  # CALCOLO ALTEZZA OMBRA
   sun_height_m: >
     {% if (sun_elev_rad | float) <= 0 %}
       9999
@@ -428,9 +416,7 @@ variables:
       {{ perc }}
     {% endif %}
 
-  ###########################################
-  #   PRIVACY
-  ###########################################
+  # PRIVACY
   position_after_privacy: >
     {% set p = position_calc_raw | float %}
     {% if privacy_mode == "always" %}
@@ -454,9 +440,7 @@ variables:
       {{ p }}
     {% endif %}
 
-  ###########################################
-  #   TILT-DOWN
-  ###########################################
+  # TILT-DOWN
   position_after_tilt_down: >
     {% set p = position_after_privacy | float %}
     {% if tilt_down_enabled %}
@@ -465,9 +449,7 @@ variables:
       {{ p }}
     {% endif %}
 
-  ###########################################
-  #   TARGET PRELIMINARE
-  ###########################################
+  # TARGET PRELIMINARE
   position_target_pre: >
     {% if sun_in_fov %}
       {{ position_after_tilt_down }}
@@ -475,9 +457,7 @@ variables:
       {{ default_position }}
     {% endif %}
 
-  ###########################################
-  #   TARGET FINALE (con minimo assoluto)
-  ###########################################
+  # TARGET FINALE (con minimo assoluto)
   position_target: >
     {% set p = position_target_pre | float %}
     {% if p < min_position %}
@@ -485,9 +465,6 @@ variables:
     {% else %}
       {{ p }}
     {% endif %}
-###########################################
-#   B L O C C O   3 :   T R I G G E R   
-###########################################
 
 trigger:
 
@@ -498,11 +475,6 @@ trigger:
   # Backup: ogni minuto
   - platform: time_pattern
     minutes: "/1"
-
-
-###########################################
-#   B L O C C O   4 :   C O N D I Z I O N I #
-###########################################
 
 condition:
 
@@ -521,17 +493,9 @@ condition:
       {% set last = states[cover.entity_id].last_changed %}
       {{ (now() - last).total_seconds() / 60 >= cooldown_minutes }}
 
-
-
-###########################################
-#   B L O C C O   5 :   A Z I O N I     #
-###########################################
-
 action:
 
-  ##################################
   # 1) DEBUG AVANZATO
-  ##################################
   - choose:
       - conditions:
           - condition: template
@@ -553,11 +517,7 @@ action:
 
               level: info
 
-
-  ##################################
   # 2) LOGICA CLIMATICA BASE
-  ##################################
-
   - choose:
 
       # ☔ LOGICA PIOGGIA
@@ -649,20 +609,14 @@ action:
           - stop
 
 
-  ##################################
   # 3) MOVIMENTO PRINCIPALE
-  ##################################
-
   - service: cover.set_cover_position
     target: !input cover_entity
     data:
       position: "{{ position_target | int }}"
 
 
-  ##################################
   # 4) TILT-UP INTELLIGENTE
-  ##################################
-
   - choose:
       - conditions:
           - condition: template
@@ -691,10 +645,5 @@ action:
                     data:
                       message: "[FRANGISOLE] Tilt-UP applicato"
                       level: info
-
-
-###########################################
-#   FINE BLUEPRINT
-###########################################
 
 mode: restart
